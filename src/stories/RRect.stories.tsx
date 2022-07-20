@@ -25,5 +25,6 @@ Primary.args = {
   y: 30,
   w: 200,
   h: 200,
-  col: '#000000'
+  col: '#000000',
+  shadow: true
 };

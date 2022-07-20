@@ -3,9 +3,10 @@ import { Graphics, Text } from '@inlet/react-pixi';
 import { GlowFilter } from '@pixi/filter-glow';
 import '@pixi/graphics-extras';
 import { TextStyle, Graphics as PixiGraphics } from 'pixi.js';
-import { Children, memo, ReactElement, ReactNode, useCallback, useMemo, useRef, useState } from 'react';
+import { Children, memo, ReactElement, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface UTextProps {
+  anchor?: number;
   x: number;
   y: number;
   h: number;
@@ -22,30 +23,31 @@ const UText = memo(function UText_(props: UTextProps) {
         fontSize: props.h,
         fill : col
       })} filters={[
-        new GlowFilter({distance: 30, color: col, outerStrength: 0.5})
+        new GlowFilter({distance: 30, color: col, outerStrength: 0.25})
       ]}
     />
   );
 });
 
-interface RRectProps {
+interface RectProps {
   x: number;
   y: number;
   w: number;
   h: number;
   col: string;
+  shadow?: boolean;
 }
 
-const Rect = memo(function Rect_(props: RRectProps) {
+const Rect = memo(function Rect_(props: RectProps) {
   const col = parseInt(props.col.substring(1), 16);
   const draw = useCallback((g: PixiGraphics) => {
     g.clear();
     g.beginFill(col);
     g.drawRect(props.x, props.y, props.w, props.h);
     g.endFill();
-    g.filters = [
-      new GlowFilter({distance: 30, color: col, outerStrength: 0.5})
-    ];
+    g.filters = props.shadow ? [
+      new GlowFilter({distance: 30, color: 0, outerStrength: 0.25})
+    ] : [];
   }, [props]);
 
   return <Graphics draw={draw} />;
@@ -57,6 +59,7 @@ interface RRectProps {
   w: number;
   h: number;
   col: string;
+  shadow?: boolean;
 }
 
 const RRect = memo(function RRect_(props: RRectProps) {
@@ -64,11 +67,11 @@ const RRect = memo(function RRect_(props: RRectProps) {
   const draw = useCallback((g: PixiGraphics) => {
     g.clear();
     g.beginFill(col);
-    g.drawRoundedRect(props.x, props.y, props.w, props.h, props.h*0.125);
+    g.drawRoundedRect(props.x, props.y, props.w, props.h, 6.25);
     g.endFill();
-    g.filters = [
-      new GlowFilter({distance: 30, color: col, outerStrength: 0.5})
-    ];
+    g.filters = props.shadow ? [
+      new GlowFilter({distance: 30, color: 0, outerStrength: 0.25})
+    ] : [];
   }, [props]);
 
   return <Graphics draw={draw} />;
@@ -100,6 +103,7 @@ interface CircleProps {
   y: number;
   sz: number;
   col: string;
+  shadow?: boolean;
 }
 
 const Circle = memo(function Circle_(props: CircleProps) {
@@ -109,9 +113,9 @@ const Circle = memo(function Circle_(props: CircleProps) {
     g.beginFill(col);
     g.drawCircle(props.x, props.y, props.sz);
     g.endFill();
-    g.filters = [
-      new GlowFilter({distance: 30, color: col, outerStrength: 0.5})
-    ];
+    g.filters = props.shadow ? [
+      new GlowFilter({distance: 30, color: 0, outerStrength: 0.25})
+    ] : [];
   }, [props]);
 
   return <Graphics draw={draw} />;
@@ -181,38 +185,64 @@ const ProgressBar = memo(function ProgressBar_(props: ProgressBarProps) {
 //   );
 // });
 
-// const Tabs = memo(function Tabs_(props: {
-//   x: number,
-//   y: number,
-//   titles: string[],
-//   children: ReactNode
-// }) {
-//   const [selected, setSelected] = useState(0);
-//   const selectors = useMemo(() => (
-//     props.titles.map((t, i) => (
-//       <Container key={i} interactive={true} buttonMode={true}
-//         pointertap={() => setSelected(i)}
-//       >
-//         {/* <RRect x={props.x + 270 * i} y={props.y} w={250} h={100}
-//           col={0x444444}
-//         /> */}
-//         <UText x={props.x + 24 + 270 * i} y={props.y + 25} h={40}
-//           text={props.titles[i]} col={0x000000}
-//         />
-//       </Container>
-//     ))
-//   ), []);
-//   const selectedTitle = useMemo(() => selectors[selected], [selected]);
-//   return (
-//     <>
-//     {selectors}
-//     {Children.map(props.children, (child, i) => (
-//       i === selected ? child : null
-//     ))}
-//     {selectedTitle}
-//     </>
-//   );
-// });
+interface TabsProps {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  titles: string[],
+  children: ReactNode
+}
+
+const Tabs = memo(function Tabs_(props: TabsProps) {
+  const [selected, setSelected] = useState(0);
+  const selectors = useMemo(() => (
+    props.titles.map((t, i) => (
+      <Container key={i} interactive={true} buttonMode={true}
+        x={props.x+40} y={props.y-35}
+        pointertap={() => setSelected(i)}
+      >
+        <RRect x={110*i} y={0} w={100} h={42}
+          col={'#D8D8D8'}
+        />
+        <UText x={20+110*i} y={10} h={20}
+          text={t} col={'#000000'}
+        />
+      </Container>
+    ))
+  ), [selected, props.x, props.y]);
+  return (
+    <>
+    {selectors}
+    <Container>
+      <RRect x={props.x} y={props.y} w={props.w} h={props.h}
+        col={'#FFFFFF'} shadow
+      />
+    </Container>
+    {selectors[selected]}
+    {Children.map(props.children, (child, i) => i === selected ? child : null)}
+    </>
+  );
+});
+
+interface ContentProps {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  title: string,
+}
+
+const Content = memo(function Content_(props: ContentProps) {
+  return (
+    <>
+    <RRect x={props.x} y={props.y} w={props.w} h={props.h} col={'#EEEEEE'} />
+    <UText anchor={0.5} x={props.x + props.w/2} y={props.y + props.h/2} h={25}
+      text={props.title} col={'#000CFF'}
+    />
+    </>
+  )
+});
 
 // const Class = memo(function Class_(props: {
 //   x: number,
@@ -248,4 +278,4 @@ const ProgressBar = memo(function ProgressBar_(props: ProgressBarProps) {
 //   return '神';
 // };
 
-export { UText, Rect, RRect, Circle, ProgressBar };
+export { UText, Rect, RRect, Circle, Content, Tabs, ProgressBar };

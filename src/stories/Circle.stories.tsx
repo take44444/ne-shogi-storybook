@@ -23,5 +23,6 @@ Primary.args = {
   x: 130,
   y: 130,
   sz: 100,
-  col: '#000000'
+  col: '#000000',
+  shadow: true
 };
