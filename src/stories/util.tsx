@@ -196,32 +196,28 @@ interface TabsProps {
 
 const Tabs = memo(function Tabs_(props: TabsProps) {
   const [selected, setSelected] = useState(0);
-  const selectors = useMemo(() => (
-    props.titles.map((t, i) => (
-      <Container key={i} interactive={true} buttonMode={true}
-        x={props.x+40} y={props.y-35}
-        pointertap={() => setSelected(i)}
-      >
-        <RRect x={110*i} y={0} w={100} h={42}
-          col={'#D8D8D8'}
-        />
-        <UText x={20+110*i} y={10} h={20}
-          text={t} col={'#000000'}
+  return (
+    <Container sortableChildren>
+      {props.titles.map((t, i) => (
+        <Container key={i} interactive={true} buttonMode={true}
+          x={props.x+40} y={props.y-35} zIndex={i === selected ? 2 : 0}
+          pointertap={() => setSelected(i)}
+        >
+          <RRect x={110*i} y={0} w={100} h={42} col={'#D8D8D8'} />
+          <UText x={20+110*i} y={10} h={20} text={t} col={'#000000'} />
+        </Container>
+      ))}
+      <Container zIndex={1}>
+        <RRect x={props.x} y={props.y} w={props.w} h={props.h}
+          col={'#FFFFFF'} shadow
         />
       </Container>
-    ))
-  ), [selected, props.x, props.y]);
-  return (
-    <>
-    {selectors}
-    <Container>
-      <RRect x={props.x} y={props.y} w={props.w} h={props.h}
-        col={'#FFFFFF'} shadow
-      />
+      <Container zIndex={3}>
+        {Children.map(props.children,
+          (child, i) => i === selected ? child : null
+        )}
+      </Container>
     </Container>
-    {selectors[selected]}
-    {Children.map(props.children, (child, i) => i === selected ? child : null)}
-    </>
   );
 });
 
