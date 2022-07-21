@@ -1,9 +1,13 @@
-import { Container } from '@inlet/react-pixi';
+import { Container, Sprite } from '@inlet/react-pixi';
 import { Graphics, Text } from '@inlet/react-pixi';
 import { GlowFilter } from '@pixi/filter-glow';
 import '@pixi/graphics-extras';
-import { TextStyle, Graphics as PixiGraphics } from 'pixi.js';
+import { TextStyle, Graphics as PixiGraphics, Texture, Loader, LoaderResource } from 'pixi.js';
 import { Children, memo, ReactElement, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import SettingsButton from './assets/settings-button.svg';
+import FriendsButton from './assets/friends-button.svg';
+import XButton from './assets/x-button.svg';
+import { Dict } from '@pixi/utils';
 
 interface UTextProps {
   anchor?: number;
@@ -14,7 +18,7 @@ interface UTextProps {
   col: string;
 };
 
-const UText = memo(function UText_(props: UTextProps) {
+const UText = (props: UTextProps) => {
   const col = parseInt(props.col.substring(1), 16);
   return (
     <Text {...props}
@@ -27,7 +31,7 @@ const UText = memo(function UText_(props: UTextProps) {
       ]}
     />
   );
-});
+};
 
 interface RectProps {
   x: number;
@@ -38,7 +42,7 @@ interface RectProps {
   shadow?: boolean;
 }
 
-const Rect = memo(function Rect_(props: RectProps) {
+const Rect = (props: RectProps) => {
   const col = parseInt(props.col.substring(1), 16);
   const draw = useCallback((g: PixiGraphics) => {
     g.clear();
@@ -51,7 +55,7 @@ const Rect = memo(function Rect_(props: RectProps) {
   }, [props]);
 
   return <Graphics draw={draw} />;
-});
+};
 
 interface RRectProps {
   x: number;
@@ -62,7 +66,7 @@ interface RRectProps {
   shadow?: boolean;
 }
 
-const RRect = memo(function RRect_(props: RRectProps) {
+const RRect = (props: RRectProps) => {
   const col = parseInt(props.col.substring(1), 16);
   const draw = useCallback((g: PixiGraphics) => {
     g.clear();
@@ -75,7 +79,7 @@ const RRect = memo(function RRect_(props: RRectProps) {
   }, [props]);
 
   return <Graphics draw={draw} />;
-});
+};
 
 // const Hexagon = memo(function Hexagon_(props: {
 //   x: number,
@@ -106,7 +110,7 @@ interface CircleProps {
   shadow?: boolean;
 }
 
-const Circle = memo(function Circle_(props: CircleProps) {
+const Circle = (props: CircleProps) => {
   const col = parseInt(props.col.substring(1), 16);
   const draw = useCallback((g: PixiGraphics) => {
     g.clear();
@@ -119,7 +123,7 @@ const Circle = memo(function Circle_(props: CircleProps) {
   }, [props]);
 
   return <Graphics draw={draw} />;
-});
+};
 
 interface ProgressBarProps {
   x: number;
@@ -129,7 +133,7 @@ interface ProgressBarProps {
   percentage: number;
 }
 
-const ProgressBar = memo(function ProgressBar_(props: ProgressBarProps) {
+const ProgressBar = (props: ProgressBarProps) => {
   return (
     <>
     <Rect x={props.x - props.w/2} y={props.y}
@@ -140,50 +144,127 @@ const ProgressBar = memo(function ProgressBar_(props: ProgressBarProps) {
     />
     </>
   );
-});
+};
 
-// const Button = memo(function Button_(props: {
-//   x: number,
-//   y: number,
-//   sz: number,
-//   callback: () => void,
-//   disable: boolean
-// }) {
-//   return (
-//     <Circle x={props.x} y={props.y} sz={props.sz} col={0x111111}
-//       interactive={!props.disable} buttonMode={!props.disable}
-//       pointertap={props.callback} filters={
-//         [new GlowFilter({distance: 10, color: 0x111111, outerStrength: 1.5})]
-//       }
-//     />
-//   );
-// });
+interface ButtonProps {
+  x: number;
+  y: number;
+  sz: number;
+  img: 'settings' | 'friends' | 'x';
+  callback: () => void;
+  disable?: boolean;
+}
 
-// const Popup = memo(function Popup_(props: {
-//   w: number,
-//   h: number,
-//   show: boolean,
-//   callback: () => void,
-//   children: ReactNode
-// }) {
-//   return (
-//     <Container visible={props.show}>
-//       {/* <RRect x={960-props.w/2} y={540-props.h/2} w={props.w} h={props.h}
-//         col={0x222222}
-//       />
-//       <RRect x={970-props.w/2} y={550-props.h/2} w={props.w-20} h={props.h-20}
-//         col={0x888888}
-//       /> */}
-//       <Circle x={960+props.w/2-90} y={540-props.h/2+70} sz={30} col={0xDD3322}
-//         interactive={true} buttonMode={true} pointertap={props.callback}
-//         filters={
-//           [new GlowFilter({distance: 5, color: 0xDD3322, outerStrength: 1.5})]
-//         }
-//       />
-//       {props.children}
-//     </Container>
-//   );
-// });
+const Button = (props: ButtonProps) => {
+  const loader = useMemo(() => new Loader(), []);
+  const [img, setImg] = useState<Texture>();
+  useEffect(() => {
+    switch (props.img) {
+      case 'settings':
+        loader.reset().add('settings', SettingsButton).load(
+          (_, r) => setImg(r['settings'].texture)
+        );
+        break;
+      case 'friends':
+        loader.reset().add('friends', FriendsButton).load(
+          (_, r) => setImg(r['friends'].texture)
+        );
+        break;
+      case 'x':
+        loader.reset().add('x', XButton).load(
+          (_, r) => setImg(r['x'].texture)
+        );
+        break;
+    }
+  }, [props.img]);
+  return (
+    <>
+    {!!img &&
+    <Sprite anchor={0.5} x={props.x} y={props.y}
+      height={props.sz}
+      width={props.sz * img.width / img.height} texture={img}
+      interactive={!(props.disable ?? false)}
+      buttonMode={!(props.disable ?? false)}
+      pointertap={props.callback}
+    />
+    }
+    </>
+  );
+};
+
+interface PopupProps {
+  x: number;
+  y: number;
+  zIndex: number;
+  buttonSz: number;
+  img: 'settings' | 'friends';
+  w: number;
+  h: number;
+  openCallback: () => void;
+  closeCallback: () => void;
+  disable: boolean;
+  children: ReactNode;
+}
+
+const Popup = (props: PopupProps) => {
+  const [show, setShow] = useState(false);
+  const openCallback = useCallback(() => {
+    setShow(true);
+    props.openCallback();
+  }, [props.openCallback]);
+  const closeCallback = useCallback(() => {
+    setShow(false);
+    props.closeCallback();
+  }, [props.closeCallback]);
+  return (
+    <Container zIndex={props.zIndex}>
+      <Button x={props.x} y={props.y} sz={props.buttonSz} img={props.img}
+        callback={openCallback} disable={props.disable}
+      />
+      <Container visible={show}>
+        <RRect x={480-props.w/2} y={270-props.h/2} w={props.w} h={props.h}
+          col={'#FFFFFF'} shadow
+        />
+        {props.children}
+        <Button x={450+props.w/2} y={300-props.h/2} sz={35} img={'x'}
+          callback={closeCallback} disable={false}
+        />
+      </Container>
+    </Container>
+  );
+};
+
+interface PopupsProps {
+  xs: number[];
+  ys: number[];
+  buttonSzs: number[];
+  imgs: ('settings' | 'friends')[];
+  ws: number[];
+  hs: number[];
+  children: ReactNode;
+}
+
+const Popups = (props: PopupsProps) => {
+  const [popupped, setPopupped] = useState(-1);
+  const openCallbacks = useMemo(() => props.xs.map((_, i) => (
+    () => setPopupped(i)
+  )), []);
+  const closeCallback = useMemo(() => () => setPopupped(-1), []);
+  return (
+    <>
+    {Children.map(props.children, (c, i) => (
+      <Popup key={i} x={props.xs[i]} y={props.ys[i]}
+        zIndex={i === popupped ? 1 : 0} w={props.ws[i]} h={props.hs[i]}
+        buttonSz={props.buttonSzs[i]} img={props.imgs[i]}
+        disable={popupped >= 0}
+        openCallback={openCallbacks[i]} closeCallback={closeCallback}
+      >
+        {c}
+      </Popup>
+    ))}
+    </>
+  );
+};
 
 interface TabsProps {
   x: number;
@@ -194,7 +275,7 @@ interface TabsProps {
   children: ReactNode
 }
 
-const Tabs = memo(function Tabs_(props: TabsProps) {
+const Tabs = (props: TabsProps) => {
   const [selected, setSelected] = useState(0);
   return (
     <Container sortableChildren>
@@ -219,7 +300,7 @@ const Tabs = memo(function Tabs_(props: TabsProps) {
       </Container>
     </Container>
   );
-});
+};
 
 interface ContentProps {
   x: number;
@@ -274,4 +355,7 @@ const Content = memo(function Content_(props: ContentProps) {
 //   return '神';
 // };
 
-export { UText, Rect, RRect, Circle, Content, Tabs, ProgressBar };
+export {
+  UText, Rect, RRect, Circle,
+  ProgressBar, Button, Content, Tabs, Popups
+};

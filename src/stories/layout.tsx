@@ -4,8 +4,8 @@ import { ReactNode, useEffect, useState } from "react";
 const Layout = (props: { children: ReactNode }) => {
   const [loaded, setLoaded] = useState(false);
   const stageProps = {
-    // width: 1920,
-    // height: 1080,
+    width: 960,
+    height: 540,
     raf: false,
     renderOnComponentChange: true,
     options: {
