@@ -249,7 +249,7 @@ const Popups = (props: PopupsProps) => {
   const openCallbacks = useMemo(() => props.xs.map((_, i) => (
     () => setPopupped(i)
   )), []);
-  const closeCallback = useMemo(() => () => setPopupped(-1), []);
+  const closeCallback = useCallback(() => setPopupped(-1), []);
   return (
     <>
     {Children.map(props.children, (c, i) => (
