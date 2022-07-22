@@ -11,10 +11,10 @@ export default {
 const Template: ComponentStory<typeof Tabs> = (args) => (
   <Layout>
     <Tabs {...args}>
-      <Content x={args.x+30} y={args.y+30} w={args.w-60} h={args.h-60}
+      <Content x={0} y={0} w={args.w-60} h={args.h-60}
         title={'Content 1'}
       />
-      <Content x={args.x+30} y={args.y+30} w={args.w-60} h={args.h-60}
+      <Content x={0} y={0} w={args.w-60} h={args.h-60}
         title={'Content 2'}
       />
     </Tabs>
@@ -24,8 +24,8 @@ const Template: ComponentStory<typeof Tabs> = (args) => (
 export const Primary = Template.bind({});
 // More on args: https://storybook.js.org/docs/react/writing-stories/args
 Primary.args = {
-  x: 50,
-  y: 50,
+  x: 0,
+  y: 0,
   w: 400,
   h: 400,
   titles: ['1', '2']

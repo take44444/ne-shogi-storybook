@@ -27,8 +27,8 @@ const Template: ComponentStory<typeof Button> = (args) => (
 export const Primary = Template.bind({});
 // More on args: https://storybook.js.org/docs/react/writing-stories/args
 Primary.args = {
-  x: 40,
-  y: 40,
+  x: 0,
+  y: 0,
   sz: 35,
   img: 'settings',
   callback: () => {}

@@ -1,4 +1,4 @@
-import { Stage } from "@inlet/react-pixi";
+import { Container, Stage } from "@inlet/react-pixi";
 import { ReactNode, useEffect, useState } from "react";
 
 const Layout = (props: { children: ReactNode }) => {
@@ -28,7 +28,7 @@ const Layout = (props: { children: ReactNode }) => {
     <>
     {loaded &&
       <Stage {...stageProps}>
-        {props.children}
+        <Container anchor={0.5} x={480} y={270}>{props.children}</Container>
       </Stage>
     }
     </>

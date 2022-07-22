@@ -22,8 +22,8 @@ const Template: ComponentStory<typeof UText> = (args) => (
 export const Primary = Template.bind({});
 // More on args: https://storybook.js.org/docs/react/writing-stories/args
 Primary.args = {
-  x: 30,
-  y: 30,
+  x: 0,
+  y: 0,
   h: 40,
   text: 'Hello, World!',
   col: '#000000'

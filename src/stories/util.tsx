@@ -1,16 +1,15 @@
-import { Container, Sprite } from '@inlet/react-pixi';
-import { Graphics, Text } from '@inlet/react-pixi';
+import { Container, Sprite } from '@inlet/react-pixi/animated';
+import { Text } from '@inlet/react-pixi';
 import { GlowFilter } from '@pixi/filter-glow';
 import '@pixi/graphics-extras';
-import { TextStyle, Graphics as PixiGraphics, Texture, Loader, LoaderResource } from 'pixi.js';
-import { Children, memo, ReactElement, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { TextStyle, Texture, Loader } from 'pixi.js';
+import { Children, memo, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import SettingsButton from './assets/settings-button.svg';
 import FriendsButton from './assets/friends-button.svg';
 import XButton from './assets/x-button.svg';
-import { Dict } from '@pixi/utils';
+import { Spring } from 'react-spring';
 
 interface UTextProps {
-  anchor?: number;
   x: number;
   y: number;
   h: number;
@@ -21,7 +20,7 @@ interface UTextProps {
 const UText = (props: UTextProps) => {
   const col = parseInt(props.col.substring(1), 16);
   return (
-    <Text {...props}
+    <Text anchor={0.5} x={props.x} y={props.y} text={props.text}
       style={new TextStyle({
         fontFamily: 'Noto Sans Mono',
         fontSize: props.h,
@@ -33,53 +32,23 @@ const UText = (props: UTextProps) => {
   );
 };
 
-interface RectProps {
+interface PopupBgProps {
   x: number;
   y: number;
   w: number;
   h: number;
-  col: string;
-  shadow?: boolean;
-}
-
-const Rect = (props: RectProps) => {
-  const col = parseInt(props.col.substring(1), 16);
-  const draw = useCallback((g: PixiGraphics) => {
-    g.clear();
-    g.beginFill(col);
-    g.drawRect(props.x, props.y, props.w, props.h);
-    g.endFill();
-    g.filters = props.shadow ? [
-      new GlowFilter({distance: 30, color: 0, outerStrength: 0.25})
-    ] : [];
-  }, [props]);
-
-  return <Graphics draw={draw} />;
 };
 
-interface RRectProps {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  col: string;
-  shadow?: boolean;
+const PopupBg = (props: PopupBgProps) => {
+  return (
+    <Sprite anchor={0.5} x={props.x} y={props.y}
+      width={props.w} height={props.h}
+      texture={Texture.WHITE} tint={0xFFFFFF} filters={[
+        new GlowFilter({distance: 30, color: 0, outerStrength: 0.25})
+      ]}
+    />
+  );
 }
-
-const RRect = (props: RRectProps) => {
-  const col = parseInt(props.col.substring(1), 16);
-  const draw = useCallback((g: PixiGraphics) => {
-    g.clear();
-    g.beginFill(col);
-    g.drawRoundedRect(props.x, props.y, props.w, props.h, 6.25);
-    g.endFill();
-    g.filters = props.shadow ? [
-      new GlowFilter({distance: 30, color: 0, outerStrength: 0.25})
-    ] : [];
-  }, [props]);
-
-  return <Graphics draw={draw} />;
-};
 
 // const Hexagon = memo(function Hexagon_(props: {
 //   x: number,
@@ -102,29 +71,6 @@ const RRect = (props: RRectProps) => {
 //   return <Graphics draw={draw} />;
 // });
 
-interface CircleProps {
-  x: number;
-  y: number;
-  sz: number;
-  col: string;
-  shadow?: boolean;
-}
-
-const Circle = (props: CircleProps) => {
-  const col = parseInt(props.col.substring(1), 16);
-  const draw = useCallback((g: PixiGraphics) => {
-    g.clear();
-    g.beginFill(col);
-    g.drawCircle(props.x, props.y, props.sz);
-    g.endFill();
-    g.filters = props.shadow ? [
-      new GlowFilter({distance: 30, color: 0, outerStrength: 0.25})
-    ] : [];
-  }, [props]);
-
-  return <Graphics draw={draw} />;
-};
-
 interface ProgressBarProps {
   x: number;
   y: number;
@@ -134,13 +80,20 @@ interface ProgressBarProps {
 }
 
 const ProgressBar = (props: ProgressBarProps) => {
+  const p = props.percentage/100;
   return (
     <>
-    <Rect x={props.x - props.w/2} y={props.y}
-      h={props.h} w={props.w*props.percentage/100} col={'#AAFF00'}
+    <Sprite anchor={0.5} x={props.x+props.w*p/2} y={props.y}
+      width={props.w*(1-p)} height={props.h}
+      texture={Texture.WHITE} tint={0x444444} filters={[
+        new GlowFilter({distance: 30, color: 0, outerStrength: 0.25})
+      ]}
     />
-    <Rect x={props.x + props.w*(props.percentage-50)/100} y={props.y}
-      h={props.h} w={props.w*(100-props.percentage)/100} col={'#444444'}
+    <Sprite anchor={0.5} x={props.x-props.w*(1-p)/2} y={props.y}
+      width={props.w*p} height={props.h}
+      texture={Texture.WHITE} tint={0xAAFF00} filters={[
+        new GlowFilter({distance: 30, color: 0, outerStrength: 0.25})
+      ]}
     />
     </>
   );
@@ -208,28 +161,35 @@ interface PopupProps {
 
 const Popup = (props: PopupProps) => {
   const [show, setShow] = useState(false);
+  const [popupProps, setPopupProps] = useState({alpha: 0});
   const openCallback = useCallback(() => {
     setShow(true);
+    setPopupProps({alpha: 1});
     props.openCallback();
   }, [props.openCallback]);
   const closeCallback = useCallback(() => {
-    setShow(false);
+    setPopupProps({alpha: 0});
     props.closeCallback();
   }, [props.closeCallback]);
+  const onRestCallback = useCallback(
+    () => setShow(popupProps.alpha > 0)
+  , [popupProps]);
   return (
-    <Container zIndex={props.zIndex}>
+    <Container anchor={0.5} x={0} y={0} zIndex={props.zIndex}>
       <Button x={props.x} y={props.y} sz={props.buttonSz} img={props.img}
         callback={openCallback} disable={props.disable}
       />
-      <Container visible={show}>
-        <RRect x={480-props.w/2} y={270-props.h/2} w={props.w} h={props.h}
-          col={'#FFFFFF'} shadow
-        />
-        {props.children}
-        <Button x={450+props.w/2} y={300-props.h/2} sz={35} img={'x'}
-          callback={closeCallback} disable={false}
-        />
-      </Container>
+      <Spring to={popupProps} onRest={onRestCallback}>
+        {p => (
+          <Container {...p} anchor={0.5} visible={show}>
+            <PopupBg x={0} y={0} w={props.w} h={props.h} />
+            {props.children}
+            <Button x={props.w/2-30} y={30-props.h/2} sz={35} img={'x'}
+              callback={closeCallback} disable={false}
+            />
+          </Container>
+        )}
+      </Spring>
     </Container>
   );
 };
@@ -251,10 +211,10 @@ const Popups = (props: PopupsProps) => {
   )), []);
   const closeCallback = useCallback(() => setPopupped(-1), []);
   return (
-    <>
+    <Container sortableChildren>
     {Children.map(props.children, (c, i) => (
       <Popup key={i} x={props.xs[i]} y={props.ys[i]}
-        zIndex={i === popupped ? 1 : 0} w={props.ws[i]} h={props.hs[i]}
+        zIndex={i === popupped ? 100 : 0} w={props.ws[i]} h={props.hs[i]}
         buttonSz={props.buttonSzs[i]} img={props.imgs[i]}
         disable={popupped >= 0}
         openCallback={openCallbacks[i]} closeCallback={closeCallback}
@@ -262,7 +222,7 @@ const Popups = (props: PopupsProps) => {
         {c}
       </Popup>
     ))}
-    </>
+    </Container>
   );
 };
 
@@ -278,22 +238,29 @@ interface TabsProps {
 const Tabs = (props: TabsProps) => {
   const [selected, setSelected] = useState(0);
   return (
-    <Container sortableChildren>
+    <Container sortableChildren anchor={0.5} x={props.x} y={props.y}>
       {props.titles.map((t, i) => (
-        <Container key={i} interactive={true} buttonMode={true}
-          x={props.x+40} y={props.y-35} zIndex={i === selected ? 2 : 0}
+        <Container key={i} anchor={0.5} x={-props.w/2} y={-props.h/2}
+          zIndex={i === selected ? 2 : 0}
+          interactive={true} buttonMode={true}
           pointertap={() => setSelected(i)}
         >
-          <RRect x={110*i} y={0} w={100} h={42} col={'#D8D8D8'} />
-          <UText x={20+110*i} y={10} h={20} text={t} col={'#000000'} />
+          <Sprite anchor={0.5} x={80+110*i} y={-12}
+            zIndex={1} width={100} height={42}
+            texture={Texture.WHITE} tint={0xD8D8D8} filters={[
+              new GlowFilter({distance: 30, color: 0, outerStrength: 0.25})
+            ]}
+          />
+          <UText x={50+110*i} y={-12} h={20} text={t} col={'#000000'} />
         </Container>
       ))}
-      <Container zIndex={1}>
-        <RRect x={props.x} y={props.y} w={props.w} h={props.h}
-          col={'#FFFFFF'} shadow
-        />
-      </Container>
-      <Container zIndex={3}>
+      <Sprite anchor={0.5} x={0} y={0} zIndex={1}
+        width={props.w} height={props.h}
+        texture={Texture.WHITE} tint={0xFFFFFF} filters={[
+          new GlowFilter({distance: 30, color: 0, outerStrength: 0.25})
+        ]}
+      />
+      <Container anchor={0.5} zIndex={3}>
         {Children.map(props.children,
           (child, i) => i === selected ? child : null
         )}
@@ -313,8 +280,11 @@ interface ContentProps {
 const Content = memo(function Content_(props: ContentProps) {
   return (
     <>
-    <RRect x={props.x} y={props.y} w={props.w} h={props.h} col={'#EEEEEE'} />
-    <UText anchor={0.5} x={props.x + props.w/2} y={props.y + props.h/2} h={25}
+    <Sprite anchor={0.5} x={props.x} y={props.y}
+      width={props.w} height={props.h}
+      texture={Texture.WHITE} tint={0xEEEEEE}
+    />
+    <UText x={props.x} y={props.y} h={25}
       text={props.title} col={'#000CFF'}
     />
     </>
@@ -356,6 +326,5 @@ const Content = memo(function Content_(props: ContentProps) {
 // };
 
 export {
-  UText, Rect, RRect, Circle,
-  ProgressBar, Button, Content, Tabs, Popups
+  UText, ProgressBar, Button, Content, Tabs, Popups
 };
