@@ -16,7 +16,8 @@ const Template: ComponentStory<typeof Button> = (args) => (
   <>
   {(args.img === 'settings' ||
     args.img === 'friends' ||
-    args.img === 'x') && // || args.img === 'rule') &&
+    args.img === 'x' ||
+    args.img === 'class') && // || args.img === 'rule') &&
   <Layout>
     <Button {...args} />
   </Layout>

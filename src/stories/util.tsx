@@ -3,11 +3,13 @@ import { Text } from '@inlet/react-pixi';
 import { GlowFilter } from '@pixi/filter-glow';
 import '@pixi/graphics-extras';
 import { TextStyle, Texture, Loader } from 'pixi.js';
-import { Children, memo, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { Children, Dispatch, memo, ReactNode, SetStateAction, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import Class from './assets/class.svg';
 import SettingsButton from './assets/settings-button.svg';
 import FriendsButton from './assets/friends-button.svg';
 import XButton from './assets/x-button.svg';
 import { Spring } from 'react-spring';
+import { context } from './layout';
 
 interface UTextProps {
   x: number;
@@ -32,14 +34,14 @@ const UText = (props: UTextProps) => {
   );
 };
 
-interface PopupBgProps {
+interface ModalBgProps {
   x: number;
   y: number;
   w: number;
   h: number;
 };
 
-const PopupBg = (props: PopupBgProps) => {
+const ModalBg = (props: ModalBgProps) => {
   return (
     <Sprite anchor={0.5} x={props.x} y={props.y}
       width={props.w} height={props.h}
@@ -103,41 +105,45 @@ interface ButtonProps {
   x: number;
   y: number;
   sz: number;
-  img: 'settings' | 'friends' | 'x';
-  callback: () => void;
-  disable?: boolean;
+  img: 'class' | 'settings' | 'friends' | 'x';
+  callback: (e: any) => void;
 }
 
 const Button = (props: ButtonProps) => {
   const loader = useMemo(() => new Loader(), []);
-  const [img, setImg] = useState<Texture>();
+  const [texture, setTexture] = useState<Texture>();
   useEffect(() => {
     switch (props.img) {
+      case 'class':
+        loader.reset().add('class', Class).load(
+          (_, r) => setTexture(r['class'].texture)
+        );
+        break
       case 'settings':
         loader.reset().add('settings', SettingsButton).load(
-          (_, r) => setImg(r['settings'].texture)
+          (_, r) => setTexture(r['settings'].texture)
         );
         break;
       case 'friends':
         loader.reset().add('friends', FriendsButton).load(
-          (_, r) => setImg(r['friends'].texture)
+          (_, r) => setTexture(r['friends'].texture)
         );
         break;
       case 'x':
         loader.reset().add('x', XButton).load(
-          (_, r) => setImg(r['x'].texture)
+          (_, r) => setTexture(r['x'].texture)
         );
         break;
     }
   }, [props.img]);
   return (
     <>
-    {!!img &&
+    {!!texture &&
     <Sprite anchor={0.5} x={props.x} y={props.y}
-      height={props.sz}
-      width={props.sz * img.width / img.height} texture={img}
-      interactive={!(props.disable ?? false)}
-      buttonMode={!(props.disable ?? false)}
+      alpha={props.img === 'class' ? 0.5 : 1} height={props.sz}
+      width={props.sz * texture.width / texture.height} texture={texture}
+      interactive={true}
+      buttonMode={true}
       pointertap={props.callback}
     />
     }
@@ -145,85 +151,101 @@ const Button = (props: ButtonProps) => {
   );
 };
 
-interface PopupProps {
+interface ModalButtonProps {
   x: number;
   y: number;
-  zIndex: number;
-  buttonSz: number;
-  img: 'settings' | 'friends';
-  w: number;
-  h: number;
-  openCallback: () => void;
-  closeCallback: () => void;
-  disable: boolean;
-  children: ReactNode;
+  sz: number;
+  img: 'class' | 'settings' | 'friends' | 'x';
+  callback: (e: any) => void;
 }
 
-const Popup = (props: PopupProps) => {
-  const [show, setShow] = useState(false);
-  const [popupProps, setPopupProps] = useState({alpha: 0});
-  const openCallback = useCallback(() => {
-    setShow(true);
-    setPopupProps({alpha: 1});
-    props.openCallback();
-  }, [props.openCallback]);
-  const closeCallback = useCallback(() => {
-    setPopupProps({alpha: 0});
-    props.closeCallback();
-  }, [props.closeCallback]);
-  const onRestCallback = useCallback(
-    () => setShow(popupProps.alpha > 0)
-  , [popupProps]);
+const ModalButton = (props: ModalButtonProps) => {
+  const modalTools = useContext(context);
+  const [disable, setDisable] = useState(false);
+  modalTools.buttonDisables[props.img] = setDisable;
+  const loader = useMemo(() => new Loader(), []);
+  const [texture, setTexture] = useState<Texture>();
+  useEffect(() => {
+    switch (props.img) {
+      case 'class':
+        loader.reset().add('class', Class).load(
+          (_, r) => setTexture(r['class'].texture)
+        );
+        break
+      case 'settings':
+        loader.reset().add('settings', SettingsButton).load(
+          (_, r) => setTexture(r['settings'].texture)
+        );
+        break;
+      case 'friends':
+        loader.reset().add('friends', FriendsButton).load(
+          (_, r) => setTexture(r['friends'].texture)
+        );
+        break;
+      case 'x':
+        loader.reset().add('x', XButton).load(
+          (_, r) => setTexture(r['x'].texture)
+        );
+        break;
+    }
+  }, [props.img]);
   return (
-    <Container anchor={0.5} x={0} y={0} zIndex={props.zIndex}>
-      <Button x={props.x} y={props.y} sz={props.buttonSz} img={props.img}
-        callback={openCallback} disable={props.disable}
-      />
-      <Spring to={popupProps} onRest={onRestCallback}>
-        {p => (
-          <Container {...p} anchor={0.5} visible={show}>
-            <PopupBg x={0} y={0} w={props.w} h={props.h} />
-            {props.children}
-            <Button x={props.w/2-30} y={30-props.h/2} sz={35} img={'x'}
-              callback={closeCallback} disable={false}
-            />
-          </Container>
-        )}
-      </Spring>
-    </Container>
+    <>
+    {!!texture &&
+    <Sprite anchor={0.5} x={props.x} y={props.y}
+      height={props.sz} width={props.sz * texture.width / texture.height}
+      texture={texture}
+      interactive={!disable} buttonMode={!disable} pointertap={props.callback}
+    />
+    }
+    </>
   );
 };
 
-interface PopupsProps {
-  xs: number[];
-  ys: number[];
-  buttonSzs: number[];
-  imgs: ('settings' | 'friends')[];
-  ws: number[];
-  hs: number[];
+interface ModalProps {
+  w: number;
+  h: number;
   children: ReactNode;
+  id: string;
 }
 
-const Popups = (props: PopupsProps) => {
-  const [popupped, setPopupped] = useState(-1);
-  const openCallbacks = useMemo(() => props.xs.map((_, i) => (
-    () => setPopupped(i)
-  )), []);
-  const closeCallback = useCallback(() => setPopupped(-1), []);
+const Modal = (props: ModalProps) => {
+  const modalTools = useContext(context);
+  const [show, setShow] = useState(false);
+  const [popupProps, setPopupProps] = useState({alpha: 0});
+  modalTools.open[props.id] = useCallback(() => {
+    for (const d of Object.values(modalTools.buttonDisables)) {
+      (d as Dispatch<SetStateAction<boolean>>)(true)
+    };
+    setShow(true);
+    setPopupProps({alpha: 1});
+  }, []);
+  const closeCallback = useCallback(() => {
+    setPopupProps({alpha: 0});
+  }, []);
+  const onRestCallback = useCallback(
+    () => {
+      if (popupProps.alpha == 0) {
+        for (const d of Object.values(modalTools.buttonDisables)) {
+          (d as Dispatch<SetStateAction<boolean>>)(false)
+        };
+        setShow(false);
+      }
+    }
+  , [popupProps]);
   return (
-    <Container sortableChildren>
-    {Children.map(props.children, (c, i) => (
-      <Popup key={i} x={props.xs[i]} y={props.ys[i]}
-        zIndex={i === popupped ? 100 : 0} w={props.ws[i]} h={props.hs[i]}
-        buttonSz={props.buttonSzs[i]} img={props.imgs[i]}
-        disable={popupped >= 0}
-        openCallback={openCallbacks[i]} closeCallback={closeCallback}
-      >
-        {c}
-      </Popup>
-    ))}
-    </Container>
-  );
+    <Spring to={popupProps} onRest={onRestCallback} >
+      {p => (
+        <Container anchor={0.5} {...p} visible={show} >
+          <ModalBg x={0} y={0} w={props.w} h={props.h} />
+          {props.children}
+          <Button x={props.w/2-30} y={30-props.h/2} sz={35} img={'x'}
+            callback={closeCallback}
+          />
+        </Container>
+      )}
+    </Spring>
+  )
 };
 
 interface TabsProps {
@@ -314,17 +336,6 @@ const Content = memo(function Content_(props: ContentProps) {
 //   );
 // });
 
-// const rate2class = (rate: number): string => {
-//   rate = Math.floor(rate / 100);
-//   if (rate < 15) {
-//     return `${(15 - rate)}級`;
-//   }
-//   if (rate < 24) {
-//     return `${['初', '二', '三', '四', '五', '六', '七', '八', '九'][rate - 15]}段`;
-//   }
-//   return '神';
-// };
-
 export {
-  UText, ProgressBar, Button, Content, Tabs, Popups
+  UText, ProgressBar, Button, Content, Tabs, Modal, ModalButton
 };

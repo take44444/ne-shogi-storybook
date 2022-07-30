@@ -1,5 +1,12 @@
 import { Container, Stage } from "@inlet/react-pixi";
-import { ReactNode, useEffect, useState } from "react";
+import { createContext, Dispatch, ReactNode, SetStateAction, useEffect, useRef, useState } from "react";
+
+export type ModalTools = {
+  open: any;
+  buttonDisables: any;
+};
+
+const context = createContext<ModalTools>(undefined as never);
 
 const Layout = (props: { children: ReactNode }) => {
   const [loaded, setLoaded] = useState(false);
@@ -24,6 +31,7 @@ const Layout = (props: { children: ReactNode }) => {
       });}
     );
   }, []);
+
   return (
     <>
     {loaded &&
@@ -36,4 +44,4 @@ const Layout = (props: { children: ReactNode }) => {
 };
 
 
-export { Layout };
+export { context, Layout };
